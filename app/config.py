@@ -7,5 +7,8 @@ load_dotenv()
 
 
 class Config:
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", "sqlite:///tasks.db")
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL",
+        "postgresql://localhost/leyton_pfa",
+    )
     SQLALCHEMY_TRACK_MODIFICATIONS = False

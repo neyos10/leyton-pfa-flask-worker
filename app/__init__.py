@@ -19,7 +19,7 @@ def create_app(config_overrides=None):
     from app.models.task import Task
 
     with app.app_context():
-        Task.__table__.create(db.engine, checkfirst=True)
+        db.create_all()
 
     from app.api.routes import api_bp
 
