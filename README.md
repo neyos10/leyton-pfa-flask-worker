@@ -1,10 +1,11 @@
 # Leyton PFA Flask Worker
 
-API Flask locale pour créer, consulter et mettre à jour des tâches en base de données. Un worker séparé traite ensuite les tâches en attente.
+API Flask locale pour créer, consulter et mettre à jour des tâches en base de données. Le point d'entrée principal lance l'API et le worker ensemble.
 
 ## Installation
 
 ```bash
+cd backend
 pip install -r requirements.txt
 ```
 
@@ -16,25 +17,18 @@ postgresql://localhost/leyton_pfa
 
 Tu peux utiliser une autre base en définissant la variable d'environnement `DATABASE_URL`.
 
-## Lancer l'API
+## Lancer le backend
 
 ```bash
-python run.py
+cd backend
+python main.py
 ```
 
-L'API démarre en mode debug sur le port `5000`.
+Cette commande lance l'API Flask sur le port `5000` et démarre le worker dans un thread séparé.
 
 Sur macOS, si `localhost:5000` répond avec `AirTunes` ou `403 Forbidden`, force IPv4 avec `curl -4` ou utilise directement `127.0.0.1`.
 
-## Lancer le worker
-
-Dans un deuxième terminal :
-
-```bash
-python worker_run.py
-```
-
-Le worker cherche les tâches `pending`, les passe en `in_progress`, simule un traitement, puis les passe en `done`. En cas d'erreur pendant le traitement d'une tâche, il la passe en `failed` et continue avec les suivantes.
+Le worker cherche les tâches `pending`, les passe en `in_progress`, télécharge le fichier indiqué par `file_location`, puis les passe en `done`. En cas d'erreur pendant le traitement d'une tâche, il la passe en `failed` et continue avec les suivantes.
 
 ## Endpoints
 
@@ -73,6 +67,7 @@ Les statuts autorisés sont `pending`, `in_progress`, `done` et `failed`.
 ## Tests
 
 ```bash
+cd backend
 pytest
 ```
 
