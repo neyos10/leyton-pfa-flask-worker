@@ -2,6 +2,7 @@ import time
 
 from app import create_app, db
 from app.models.task import Task
+from app.services.file_service import DownloadFileError, download_file
 
 
 def run_worker():
@@ -21,12 +22,17 @@ def run_worker():
                         flush=True,
                     )
 
-                    time.sleep(2)
+                    local_file_path = download_file(task.file_location)
 
                     task.status = "done"
                     db.session.commit()
 
-                    print(f"Task {task.id} completed", flush=True)
+                    print(f"Task {task.id} completed: {local_file_path}", flush=True)
+                except DownloadFileError as error:
+                    db.session.rollback()
+                    task.status = "failed"
+                    db.session.commit()
+                    print(f"Task {task.id} download failed: {error}", flush=True)
                 except Exception as error:
                     db.session.rollback()
                     task.status = "failed"
