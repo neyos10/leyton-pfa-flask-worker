@@ -2,7 +2,20 @@ import time
 
 from app import create_app, db
 from app.models.task import Task
+from app.services.elasticsearch_service import index_task
 from app.services.file_service import DownloadFileError, download_file
+
+
+def _commit_and_index_task(task):
+    db.session.commit()
+
+    try:
+        index_task(task)
+    except Exception as error:
+        print(
+            f"Task {task.id} Elasticsearch sync failed: {error}",
+            flush=True,
+        )
 
 
 def process_pending_tasks(app=None):
@@ -14,7 +27,7 @@ def process_pending_tasks(app=None):
         for task in pending_tasks:
             try:
                 task.status = "in_progress"
-                db.session.commit()
+                _commit_and_index_task(task)
 
                 print(
                     f"Processing task {task.id}: {task.file_location}",
@@ -24,18 +37,18 @@ def process_pending_tasks(app=None):
                 local_file_path = download_file(task.file_location)
 
                 task.status = "done"
-                db.session.commit()
+                _commit_and_index_task(task)
 
                 print(f"Task {task.id} completed: {local_file_path}", flush=True)
             except DownloadFileError as error:
                 db.session.rollback()
                 task.status = "failed"
-                db.session.commit()
+                _commit_and_index_task(task)
                 print(f"Task {task.id} download failed: {error}", flush=True)
             except Exception as error:
                 db.session.rollback()
                 task.status = "failed"
-                db.session.commit()
+                _commit_and_index_task(task)
                 print(f"Task {task.id} failed: {error}", flush=True)
 
 
