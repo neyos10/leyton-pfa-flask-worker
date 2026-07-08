@@ -1,12 +1,13 @@
 import os
 
 import pandas as pd
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, NotFoundError
 from elasticsearch.helpers import bulk, scan
 
 
 INDEX_NAME = "gics_codes"
 TASKS_INDEX_NAME = "tasks_index"
+MERGED_RESULTS_INDEX_NAME = "merged_results"
 DEFAULT_ELASTICSEARCH_URL = "http://localhost:9200"
 
 GICS_MAPPING = {
@@ -27,6 +28,13 @@ TASKS_MAPPING = {
     "status": {"type": "keyword"},
     "created_at": {"type": "date"},
     "updated_at": {"type": "date"},
+}
+
+MERGED_RESULTS_MAPPING = {
+    "merged_doc": {
+        "type": "object",
+        "dynamic": True,
+    }
 }
 
 CSV_COLUMNS = {
@@ -69,6 +77,19 @@ def create_tasks_index():
     es.indices.create(
         index=TASKS_INDEX_NAME,
         mappings={"properties": TASKS_MAPPING},
+    )
+    return True
+
+
+def create_merged_results_index():
+    es = get_es_client()
+
+    if es.indices.exists(index=MERGED_RESULTS_INDEX_NAME):
+        return False
+
+    es.indices.create(
+        index=MERGED_RESULTS_INDEX_NAME,
+        mappings={"properties": MERGED_RESULTS_MAPPING},
     )
     return True
 
@@ -157,13 +178,28 @@ def search_tasks_by_status(status):
     ]
 
 
+def index_merged_result(merged_doc, doc_id):
+    create_merged_results_index()
+
+    return get_es_client().index(
+        index=MERGED_RESULTS_INDEX_NAME,
+        id=str(doc_id),
+        document={"merged_doc": merged_doc},
+    )
+
+
 def search_by_code(code):
     es = get_es_client()
-    response = es.search(
-        index=INDEX_NAME,
-        query={"term": {"sub_industry_id": str(code).strip()}},
-        size=1,
-    )
+
+    try:
+        response = es.search(
+            index=INDEX_NAME,
+            query={"term": {"sub_industry_id": str(code).strip()}},
+            size=1,
+        )
+    except NotFoundError:
+        return None
+
     hits = response["hits"]["hits"]
 
     if not hits:
