@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, render_template, request
 
 from app import db
 from app.api.schemas import validate_task_payload
@@ -8,6 +8,12 @@ from app.models.task import Task
 api_bp = Blueprint("api_bp", __name__)
 
 ALLOWED_STATUSES = {"pending", "in_progress", "done", "failed"}
+
+
+@api_bp.get("/")
+def index():
+    tasks = Task.query.all()
+    return render_template("index.html", tasks=tasks)
 
 
 @api_bp.post("/tasks")
